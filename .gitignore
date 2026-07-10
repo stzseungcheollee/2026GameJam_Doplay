@@ -1,0 +1,11 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+
+# 웹 빌드 산출물
+/builds/
+
+# 개발용 임시 파일
+/scratch_*.txt
+/_shot_*.png
+/_shot_*.png.import
