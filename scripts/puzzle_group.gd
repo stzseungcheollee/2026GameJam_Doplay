@@ -14,6 +14,8 @@ var cell_set: Dictionary = {}
 var off := Vector2i.ZERO
 var rot := 0                       # 0~3, 90° 시계방향 회전 수
 var boxed := false                 # 상자 안에 숨겨진 상태 (입력/스냅/합체/떠오름에서 제외)
+var tacked := false                # 압정으로 고정된 묶음 (드래그 이동 불가, 압정칸을 축으로만 회전)
+var tack_cell := Vector2i.ZERO     # 압정이 박힌 정답 셀 (회전 축이자 압정 표시 위치)
 var cell_px := 75.0
 var src_cell := Vector2.ZERO
 var tex: Texture2D

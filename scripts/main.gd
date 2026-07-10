@@ -16,6 +16,12 @@ const FADE_COL := Color(0.10, 0.07, 0.04)   # 메뉴에서 넘어올 때의 컷 
 const DIRS := [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
 const INTRO_STAGGER := 0.05     # 조각 팝업 등장 간격(초)
 
+# 압정(누름핀) 이미지. 압정칸 보드 위치는 회전해도 고정이라, 조각과 무관한 별도 레이어에 '안 돌아가는' 스프라이트로 얹는다.
+const PIN_PATH := "res://assets/sprites/pin.png"
+const PIN_H_FRAC := 1.15                  # 핀 높이 = cell_px * 이 값
+const PIN_TIP := Vector2(0.42, 0.90)      # 핀 이미지 안에서 '끝(팁)'의 UV — 이 점이 압정칸 중앙에 닿는다
+const PIN_NUDGE := Vector2(5, 5)          # 핀 그림만 우하단으로 살짝 이동(순수 시각 보정, 로직 무관)
+
 # ─────────────────────────────────────────────────────────────────────────────
 # ★ 레벨 밸런스 표 — 레벨마다 한 줄. 뒤로 갈수록 어려워지게 짠다.
 #   grid  : 완성 그림을 나누는 격자 (가로 x 세로). 총 칸 수 = 조각들이 덮는 넓이.
@@ -23,33 +29,35 @@ const INTRO_STAGGER := 0.05     # 조각 팝업 등장 간격(초)
 #   piece : 조각 한 개의 크기 범위 (최소칸, 최대칸). 최대칸이 작을수록 조각이 잘게 쪼개져 개수가 많아진다.
 #   boxes : 이 레벨에 놓을 상자 목록. 항목 N = box_N 상자 하나가 "가장 작은 조각 N개"를 숨긴다.
 #           예) [3, 1] = box_3(3조각 숨김) 1개 + box_1(1조각 숨김) 1개. [] = 상자 없음.
+#   tacks : 이 레벨에 박을 압정 개수(옵션, 없으면 0). 압정 조각은 완성 위치에 고정돼 못 움직이고,
+#           압정칸을 축으로만 회전한다. 완성 그림이 보드 안에 통째로 들어가는 곳에 두므로 클리어는 항상 가능.
 #   ※ 규칙: (상자가 숨기는 총 조각 수 + 1) ≤ 최소 조각 수(= ceil(칸수 / piece 최대)). --balance 로 점검.
 #   레벨이 그림 수보다 적으면 마지막(가장 어려운) 줄을 계속 쓴다.
 # ─────────────────────────────────────────────────────────────────────────────
 const LEVELS: Array[Dictionary] = [
 	{"grid": Vector2i(2, 3), "board": Vector2i(4, 4),  "piece": Vector2i(2, 3), "boxes": []},          #  1  튜토리얼(상자 없음)
 	{"grid": Vector2i(2, 3), "board": Vector2i(4, 5),  "piece": Vector2i(1, 3), "boxes": [1]},         #  2  상자 첫 등장
-	{"grid": Vector2i(3, 3), "board": Vector2i(5, 5),  "piece": Vector2i(2, 4), "boxes": [1]},         #  3
+	{"grid": Vector2i(3, 3), "board": Vector2i(5, 5),  "piece": Vector2i(2, 4), "boxes": [1], "tacks": 1},   #  3  압정 첫 등장
 	{"grid": Vector2i(3, 3), "board": Vector2i(5, 5),  "piece": Vector2i(1, 3), "boxes": [2]},         #  4
 	{"grid": Vector2i(3, 4), "board": Vector2i(6, 6),  "piece": Vector2i(2, 4), "boxes": [2]},         #  5
 	{"grid": Vector2i(3, 4), "board": Vector2i(6, 6),  "piece": Vector2i(1, 3), "boxes": [3]},         #  6
 	{"grid": Vector2i(4, 4), "board": Vector2i(7, 7),  "piece": Vector2i(2, 4), "boxes": [1, 2]},      #  7  상자 2개
-	{"grid": Vector2i(4, 4), "board": Vector2i(7, 7),  "piece": Vector2i(1, 4), "boxes": [3]},         #  8
+	{"grid": Vector2i(4, 4), "board": Vector2i(7, 7),  "piece": Vector2i(1, 4), "boxes": [3], "tacks": 1},   #  8
 	{"grid": Vector2i(4, 5), "board": Vector2i(7, 8),  "piece": Vector2i(2, 4), "boxes": [2, 2]},      #  9
 	{"grid": Vector2i(4, 5), "board": Vector2i(8, 8),  "piece": Vector2i(1, 4), "boxes": [1, 3]},      # 10
 	{"grid": Vector2i(4, 5), "board": Vector2i(8, 8),  "piece": Vector2i(1, 3), "boxes": [2, 3]},      # 11
 	{"grid": Vector2i(5, 5), "board": Vector2i(8, 8),  "piece": Vector2i(2, 4), "boxes": [3, 3]},      # 12
-	{"grid": Vector2i(5, 5), "board": Vector2i(8, 9),  "piece": Vector2i(1, 4), "boxes": [2, 2, 2]},   # 13  상자 3개
+	{"grid": Vector2i(5, 5), "board": Vector2i(8, 9),  "piece": Vector2i(1, 4), "boxes": [2, 2, 2], "tacks": 1}, # 13  상자 3개
 	{"grid": Vector2i(5, 6), "board": Vector2i(9, 9),  "piece": Vector2i(2, 4), "boxes": [3, 3]},      # 14
 	{"grid": Vector2i(5, 6), "board": Vector2i(9, 9),  "piece": Vector2i(1, 4), "boxes": [1, 3, 3]},   # 15
 	{"grid": Vector2i(5, 6), "board": Vector2i(9, 9),  "piece": Vector2i(1, 3), "boxes": [3, 3, 3]},   # 16
 	{"grid": Vector2i(6, 6), "board": Vector2i(9, 10), "piece": Vector2i(2, 4), "boxes": [2, 3, 3]},   # 17
-	{"grid": Vector2i(6, 6), "board": Vector2i(10, 10),"piece": Vector2i(1, 4), "boxes": [2, 3, 3]},   # 18
+	{"grid": Vector2i(6, 6), "board": Vector2i(10, 10),"piece": Vector2i(1, 4), "boxes": [2, 3, 3], "tacks": 2}, # 18
 	{"grid": Vector2i(6, 7), "board": Vector2i(10, 10),"piece": Vector2i(1, 4), "boxes": [3, 3, 3]},   # 19
 	{"grid": Vector2i(6, 7), "board": Vector2i(10, 10),"piece": Vector2i(1, 3), "boxes": [1, 3, 3, 3]}, # 20  상자 4개
 	{"grid": Vector2i(7, 7), "board": Vector2i(11, 11),"piece": Vector2i(1, 4), "boxes": [3, 3, 3, 3]}, # 21
 	{"grid": Vector2i(7, 7), "board": Vector2i(11, 11),"piece": Vector2i(1, 3), "boxes": [2, 3, 3, 3]}, # 22
-	{"grid": Vector2i(7, 8), "board": Vector2i(11, 11),"piece": Vector2i(1, 4), "boxes": [3, 3, 3, 3]}, # 23
+	{"grid": Vector2i(7, 8), "board": Vector2i(11, 11),"piece": Vector2i(1, 4), "boxes": [3, 3, 3, 3], "tacks": 2}, # 23
 	{"grid": Vector2i(7, 9), "board": Vector2i(11, 11),"piece": Vector2i(1, 3), "boxes": [3, 3, 3, 3, 3]}, # 24  상자 5개
 ]
 
@@ -71,6 +79,9 @@ var groups_layer: Node2D
 var boxes: Array[PuzzleBox] = []         # 조각을 숨긴 상자들
 var boxes_layer: Node2D
 var _box_plan: Array = []                # 이번 레벨 각 상자에 담을 조각 묶음 (Array of Array[PuzzleGroup])
+var pins: Array[Node2D] = []             # 압정칸에 꽂은 핀 스프라이트들 (안 돌아감·고정)
+var pins_layer: Node2D
+var _pin_tex: Texture2D                  # 핀 텍스처 캐시
 var board_view: BoardView
 
 var drag_group: PuzzleGroup = null
@@ -107,10 +118,19 @@ func _ready() -> void:
 	boxes_layer.z_index = 20        # 조각 위에 올라가 확실히 터치되고, 열릴 때 조각이 아래에서 튀어나온다
 	add_child(boxes_layer)
 
+	pins_layer = Node2D.new()
+	pins_layer.z_index = 15         # 조각 위(핀은 늘 보이게). 조각처럼 회전하지 않는 별도 레이어라 핀이 안 돌아간다.
+	add_child(pins_layer)
+
 	_build_ui()
 	level_textures = await _load_levels()
 	# 메뉴(로비)에서 고른 스테이지부터 시작한다(없으면 0). 범위를 벗어나면 클램프.
-	start_level(clampi(SaveData.pending_level, 0, maxi(level_textures.size() - 1, 0)))
+	# 개발용: `-- --level=3` 처럼 시작 레벨을 강제로 지정할 수 있다(1부터). 압정/상자 레벨 점검에 쓴다.
+	var start := clampi(SaveData.pending_level, 0, maxi(level_textures.size() - 1, 0))
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--level="):
+			start = clampi(int(a.trim_prefix("--level=")) - 1, 0, maxi(level_textures.size() - 1, 0))
+	start_level(start)
 	_fade_in()
 
 	if "--balance" in OS.get_cmdline_user_args():
@@ -196,6 +216,7 @@ func start_level(idx: int) -> void:
 	if _bob_tween and _bob_tween.is_valid():
 		_bob_tween.kill()
 	groups_layer.visible = true
+	pins_layer.visible = true
 	board_view.clear_ghost()
 	for g in groups:
 		g.queue_free()
@@ -204,6 +225,9 @@ func start_level(idx: int) -> void:
 	for b in boxes:
 		b.queue_free()
 	boxes.clear()
+	for p in pins:
+		p.queue_free()
+	pins.clear()
 
 	# 이 레벨의 설정(격자·보드·조각크기·상자)을 LEVELS 에서 읽어 배치한다.
 	var cfg := _level_cfg(idx)
@@ -234,6 +258,7 @@ func start_level(idx: int) -> void:
 			cell_group[c] = g
 
 	_choose_boxed()
+	_choose_tacked()
 	_scatter(rng)
 	_update_hud()
 	overlay.visible = false
@@ -256,15 +281,21 @@ func _layout_board() -> void:
 	board_view.position = board_origin
 	groups_layer.position = board_origin
 	boxes_layer.position = board_origin
+	pins_layer.position = board_origin
 
 
 ## 각 그룹을 랜덤 회전 + 서로 겹치지 않는 랜덤 위치에 배치. 상자(숨긴 조각)를 먼저 놓고 그 자리를 비켜간다.
 func _scatter(rng: RandomNumberGenerator) -> void:
 	var occ := {}
+	# 압정: 완성 그림이 통째로 보드 안에 들어가는 위치(pic_origin)를 골라, 압정 조각들을 그 정답 자리에 rot=0 으로 고정한다.
+	# 그림 전체가 보드 안이라 나머지 조각도 그 둘레 정답 자리에 모두 놓을 수 있어 → 클리어가 항상 가능하다.
+	# 또한 압정 조각이 4방향 회전 내내 보드를 안 벗어나도록 여유까지 고려해 위치를 정한다.
+	var pic_origin := _pick_pic_origin(rng)
+	_place_tacks(pic_origin, occ)
 	_place_boxes(rng, occ)
 	var i := 0
 	for g in groups:
-		if g.boxed:
+		if g.boxed or g.tacked:
 			continue
 		g.set_rotation_index(rng.randi_range(0, 3))
 		var r := g.allowed_off_range(board_w, board_h)
@@ -318,6 +349,125 @@ func _choose_boxed() -> void:
 				cell_group.erase(c)
 			bundle.append(g)
 		_box_plan.append(bundle)
+
+
+# ---------- 압정 (조각을 완성 위치에 고정 — 못 움직이고 압정칸을 축으로만 회전) ----------
+
+## 레벨 설정의 tacks 수만큼, 상자에 안 든 조각 중에서 압정 조각을 고른다.
+## 큰 조각부터(고정 앵커답게), 자유 조각은 최소 1개 남긴다(미리 풀린 판·손댈 조각 없음 방지).
+## 여기선 대상 선택과 압정칸(tack_cell)만 정하고, 실제 고정 위치는 _place_tacks 에서 준다.
+func _choose_tacked() -> void:
+	var want := int(_level_cfg(level_idx).get("tacks", 0))
+	if want <= 0:
+		return
+	var avail: Array[PuzzleGroup] = []
+	for g in groups:
+		if not g.boxed:
+			avail.append(g)
+	avail.sort_custom(func(a: PuzzleGroup, b: PuzzleGroup) -> bool: return a.cells.size() > b.cells.size())
+	var take := mini(want, maxi(avail.size() - 1, 0))
+	for k in take:
+		var g: PuzzleGroup = avail[k]
+		g.tacked = true
+		g.tack_cell = _tack_pivot_cell(g)   # 회전 반경이 가장 작은 칸에 박아 4방향 회전에도 보드를 덜 벗어난다
+
+
+## 압정 축으로 삼을 칸 = 회전 시 조각이 가장 적게 뻗치는 '체비쇼프 중심'(다른 모든 셀까지의 최대 체비쇼프 거리 R 최소).
+## 이 R 이 곧 축을 기준으로 4방향 회전 시 조각이 사방으로 뻗는 최대 칸 수라, 배치 범위 계산(_pick_pic_origin)에 쓰인다.
+## 동률이면 무게중심에 가까운 칸을 고른다.
+func _tack_pivot_cell(g: PuzzleGroup) -> Vector2i:
+	var ctr := Vector2.ZERO
+	for c in g.cells:
+		ctr += Vector2(c)
+	ctr /= float(g.cells.size())
+	var best := g.cells[0]
+	var best_r := 1 << 30
+	var best_d := INF
+	for t in g.cells:
+		var r := _tack_radius_for(g, t)
+		var d := Vector2(t).distance_squared_to(ctr)
+		if r < best_r or (r == best_r and d < best_d):
+			best_r = r
+			best_d = d
+			best = t
+	return best
+
+
+## 조각 g 를 칸 t 를 축으로 회전할 때의 회전 반경 = 모든 셀까지의 최대 체비쇼프 거리.
+func _tack_radius_for(g: PuzzleGroup, t: Vector2i) -> int:
+	var r := 0
+	for c in g.cells:
+		r = maxi(r, maxi(absi(c.x - t.x), absi(c.y - t.y)))
+	return r
+
+
+## 완성 그림 좌상단(pic_origin) 위치를 정한다.
+##  - 그림이 통째로 보드 안(클리어 가능) : pic_origin ∈ [0, board-puzzle].
+##  - 모든 압정 조각이 4방향 회전 내내 보드 안 : 각 압정칸 보드위치 T=pic_origin+tack 가 [R, board-1-R] 안이도록 범위를 좁힌다.
+## 두 조건을 함께 만족하는 범위가 있으면 그 안에서, 없으면(빡빡한 판) 그림-맞춤 범위로 폴백한다(그래도 rot=0 클리어는 가능).
+func _pick_pic_origin(rng: RandomNumberGenerator) -> Vector2i:
+	var lo := Vector2i.ZERO
+	var hi := Vector2i(board_w - puzzle_w, board_h - puzzle_h)
+	var clo := lo
+	var chi := hi
+	for g in groups:
+		if not g.tacked:
+			continue
+		var t := g.tack_cell
+		var r := _tack_radius_for(g, t)
+		clo.x = maxi(clo.x, r - t.x)
+		clo.y = maxi(clo.y, r - t.y)
+		chi.x = mini(chi.x, board_w - 1 - r - t.x)
+		chi.y = mini(chi.y, board_h - 1 - r - t.y)
+	if clo.x <= chi.x and clo.y <= chi.y:
+		lo = clo
+		hi = chi
+	return Vector2i(rng.randi_range(lo.x, hi.x), rng.randi_range(lo.y, hi.y))
+
+
+## 압정 조각들을 pic_origin(완성 그림 좌상단)에 rot=0 으로 고정 배치한다.
+## rot=0 이라 보드칸 = pic_origin + 정답셀 → 각 압정 조각은 서로 안 겹치는 정답 위치를 차지한다.
+## 그림 전체가 보드 안(pic_origin 범위 보장)이라 이 배치는 항상 클리어 가능한 상태다.
+func _place_tacks(pic_origin: Vector2i, occ: Dictionary) -> void:
+	for g in groups:
+		if not g.tacked:
+			continue
+		g.set_rotation_index(0)
+		g.off = pic_origin
+		for c in g.cells:
+			occ[pic_origin + g.rel_cell(c, 0)] = true
+		g.pop_in(0.0)
+		# 압정칸의 보드 위치는 회전해도 고정(pivot 고정)이라, 여기에 안 돌아가는 핀을 한 번 꽂으면 끝.
+		_spawn_pin(pic_origin + g.rel_cell(g.tack_cell, 0))
+
+
+## 핀 텍스처(한 번 로드해 재사용). 없으면 null.
+func _pin_texture() -> Texture2D:
+	if _pin_tex == null and ResourceLoader.exists(PIN_PATH):
+		_pin_tex = load(PIN_PATH)
+	return _pin_tex
+
+
+## 보드칸 bc 중앙에 핀 스프라이트를 세운다. pins_layer 소속이라 조각 회전과 무관하게 늘 똑바로 서 있다.
+## 팁(뾰족한 끝, PIN_TIP)이 칸 중앙에 오도록 offset 을 잡는다. 톡 튀어나오는 팝 연출.
+func _spawn_pin(bc: Vector2i) -> void:
+	var tex := _pin_texture()
+	if tex == null:
+		return
+	var pin := Sprite2D.new()
+	pin.texture = tex
+	pin.centered = false
+	pin.offset = -PIN_TIP * tex.get_size()                  # 팁을 원점으로 (offset 은 스케일 전 텍셀 기준)
+	var s := cell_px * PIN_H_FRAC / tex.get_height()
+	pin.position = (Vector2(bc) + Vector2(0.5, 0.5)) * cell_px + PIN_NUDGE
+	pins_layer.add_child(pin)
+	pins.append(pin)
+	# 조각 팝업에 맞춰 핀도 톡 꽂히듯 등장.
+	pin.scale = Vector2.ZERO
+	var t := create_tween()
+	t.tween_interval(0.12)
+	t.tween_property(pin, "scale", Vector2(s, s), 0.32) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT).from(Vector2.ZERO)
 
 
 ## _box_plan 의 각 묶음마다 상자 하나(1x1칸)를 빈 칸에 배치한다. 상자 그림(box_N)은 담은 조각 수로 정해진다.
@@ -443,6 +593,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			else:
 				_tap_rotate(g)
 	elif event is InputEventMouseMotion and drag_group:
+		if drag_group.tacked:
+			return                          # 압정 조각은 이동 불가 — 떼는 순간 탭(회전)으로만 처리된다
 		if not _dragging and get_global_mouse_position().distance_to(_press_pos) > TAP_MOVE_THRESH:
 			_dragging = true
 			_update_float_states()          # 드래그 시작 → 뜬 상태
@@ -481,12 +633,15 @@ func _drop(g: PuzzleGroup) -> void:
 func _tap_rotate(g: PuzzleGroup) -> void:
 	board_view.clear_ghost()
 	Sfx.play("rotate")
-	var pivot := _pick_cell
+	# 압정 조각은 어디를 눌러도 압정칸을 축으로 돈다 → 압정칸 보드 위치가 고정돼 압정이 절대 안 움직인다.
+	var pivot := g.tack_cell if g.tacked else _pick_cell
 	var pivot_bc := g.off + g.rel_cell(pivot, g.rot)    # 회전 전 축칸의 보드칸
 	var pivot_center := (Vector2(pivot_bc) + Vector2(0.5, 0.5)) * g.cell_px  # 화면상 고정할 축 중앙
 	g.bump_rotation()
 	var new_off := pivot_bc - g.rel_cell(pivot, g.rot)  # 축칸을 제자리에 고정
-	g.rotate_around(pivot, pivot_center, g.clamp_off(new_off, board_w, board_h))
+	# 압정 조각은 클램프하지 않는다(클램프하면 축칸이 밀려 압정이 이동). 완성 자세(rot=0)는 보드 안이라 문제없다.
+	var final_off := new_off if g.tacked else g.clamp_off(new_off, board_w, board_h)
+	g.rotate_around(pivot, pivot_center, final_off)
 	_resolve_merges(g)     # 회전한 상태로도 같은 각도의 이웃과 맞으면 합쳐진다
 	_finish_move()
 
@@ -624,6 +779,10 @@ func _resolve_merges(g: PuzzleGroup) -> void:
 				# 합칠 때마다 음정을 반음씩 올려 연쇄가 상승하는 콤보로 들리게 한다.
 				Sfx.play_pitched("snap", 1.0 + 0.06 * mini(merged, 6))
 				merged += 1
+				# 압정 조각을 흡수하면 합쳐진 묶음도 압정으로 고정된다(고정 위치·회전축 유지). anchor 가 같아 압정칸은 제자리.
+				if other.tacked and not g.tacked:
+					g.tacked = true
+					g.tack_cell = other.tack_cell
 				g.absorb(moved)
 				for c in moved:
 					cell_group[c] = g
@@ -810,6 +969,7 @@ func _win() -> void:
 	# 완성된 판을 잠깐 그대로 보여준 뒤, 실제 조각을 감추고 그림이 (회전하며) 떠오른다
 	await get_tree().create_timer(0.35).timeout
 	groups_layer.visible = false
+	pins_layer.visible = false
 
 	var target_center := Vector2(VIEW_W * 0.5, VIEW_H * 0.44)
 	var final_size := 480.0
@@ -918,13 +1078,14 @@ func _add_back_arrow_icon(btn: Button) -> void:
 ## 그에 따른 조각 수 범위·상자가 숨기는 수·경고(보드<격자, 상자>조각, 보드빽빽)를 보여준다.
 func _report_balance() -> void:
 	print("=== 레벨 밸런스 표 (LEVELS %d개) ===" % LEVELS.size())
-	print(" lv | grid   칸 | board | piece | 조각수  | boxes        숨김 | 경고")
+	print(" lv | grid   칸 | board | piece | 조각수  | boxes        숨김 | 압정 | 경고")
 	for i in LEVELS.size():
 		var c := LEVELS[i]
 		var g: Vector2i = c["grid"]
 		var b: Vector2i = c["board"]
 		var p: Vector2i = c["piece"]
 		var bx: Array = c["boxes"]
+		var tk := int(c.get("tacks", 0))
 		var cells := g.x * g.y
 		var min_pieces := int(ceili(float(cells) / float(p.y)))    # 조각이 가장 클 때 = 가장 적을 때
 		var max_pieces := mini(cells, int(ceili(float(cells) / float(p.x))))
@@ -938,9 +1099,12 @@ func _report_balance() -> void:
 			warn += "상자>조각! "
 		if float(cells + bx.size()) > float(b.x * b.y) * 0.7:
 			warn += "보드빽빽 "
-		print("%3d | %dx%d %4d | %2dx%-2d | %d~%d   | %2d~%-2d | %-12s → %d | %s" % [
+		# 압정은 완성 그림을 보드 안(pic_origin 범위)에 통째로 두므로 board≥grid 이면 항상 클리어 가능.
+		if tk > 0 and (b.x < g.x or b.y < g.y):
+			warn += "압정클리어불가! "
+		print("%3d | %dx%d %4d | %2dx%-2d | %d~%d   | %2d~%-2d | %-12s → %d | %3d | %s" % [
 			i + 1, g.x, g.y, cells, b.x, b.y, p.x, p.y,
-			min_pieces, max_pieces, str(bx), hide, warn])
+			min_pieces, max_pieces, str(bx), hide, tk, warn])
 
 
 # ---------- 자체 검증 (godot --path . -- --test) ----------
@@ -955,6 +1119,27 @@ func _run_self_test() -> void:
 		sum += g.cells.size()
 	print("[test] groups=%d cells=%d (expect %d)" % [groups.size(), sum, total_cells])
 	ok = ok and sum == total_cells and groups.size() > 1
+
+	# 1.5) 압정 조각은 압정칸 축으로 4방향 회전해도 절대 보드를 벗어나지 않는다(이 레벨의 실제 배치·축 선택 검증).
+	var n_tacked := 0
+	var tack_in_board := true
+	for g in groups:
+		if not g.tacked:
+			continue
+		n_tacked += 1
+		var base_off := g.off
+		var base_rot := g.rot
+		for _r in 4:
+			var pbc := g.off + g.rel_cell(g.tack_cell, g.rot)      # _tap_rotate 와 동일: 축칸 보드위치 고정 회전
+			g.set_rotation_index(g.rot + 1)
+			g.off = pbc - g.rel_cell(g.tack_cell, g.rot)
+			for bc in g.board_cells():
+				if bc.x < 0 or bc.y < 0 or bc.x >= board_w or bc.y >= board_h:
+					tack_in_board = false
+		g.set_rotation_index(base_rot)
+		g.off = base_off
+	print("[test] tacked(%d) stay in board across rotations: %s" % [n_tacked, tack_in_board])
+	ok = ok and tack_in_board
 
 	# 2) 모든 조각 크기 1~4
 	var size_ok := true
@@ -990,6 +1175,7 @@ func _run_self_test() -> void:
 		var b := groups[1]
 		a.set_rotation_index(0)
 		b.set_rotation_index(0)
+		a.off = Vector2i(1000, 1000)                # 다른 조각(상자 되돌림 더미·압정 등)과 안 겹치는 외딴 곳으로 격리
 		b.off = a.off + (a.cells[0] - b.cells[0])   # b 의 첫 셀이 a 의 첫 셀 보드칸에 겹침
 		groups_layer.move_child(b, -1)              # b 를 스택 맨 위로
 		_update_float_states()
@@ -1075,6 +1261,64 @@ func _run_self_test() -> void:
 	var foot_ok := tb.footprint_cells().size() == 1            # 1x1 칸 차지
 	print("[test] box 3-hit opens & keeps payload: %s / 1x1: %s" % [full_ok and mid_ok and open_ok, foot_ok])
 	ok = ok and full_ok and mid_ok and open_ok and foot_ok
+
+	# 9) 압정 축 고정: 압정칸을 축으로 한 회전은 압정칸의 보드 위치를 4회전 내내 고정한다(_tap_rotate 축 계산 재현).
+	var tg := groups[0]
+	tg.set_rotation_index(0)
+	tg.off = Vector2i(2, 2)
+	tg.tacked = true
+	tg.tack_cell = tg.cells[tg.cells.size() / 2]
+	var tack_bc := tg.off + tg.rel_cell(tg.tack_cell, tg.rot)
+	var tack_fixed := true
+	for _k in 4:
+		var pbc := tg.off + tg.rel_cell(tg.tack_cell, tg.rot)
+		tg.bump_rotation()
+		tg.off = pbc - tg.rel_cell(tg.tack_cell, tg.rot)
+		if tg.off + tg.rel_cell(tg.tack_cell, tg.rot) != tack_bc:
+			tack_fixed = false
+	print("[test] tack pivot stays fixed under rotation: %s" % tack_fixed)
+	ok = ok and tack_fixed
+	tg.tacked = false
+	tg.set_rotation_index(0)
+
+	# 10) 압정 클리어 가능성: 완성 그림을 pic_origin(보드-격자 범위) 어디에 둬도 모든 칸이 보드 안에 들어온다.
+	var solvable := true
+	for oy in [0, board_h - puzzle_h]:
+		for ox in [0, board_w - puzzle_w]:
+			for gy in puzzle_h:
+				for gx in puzzle_w:
+					var bc := Vector2i(ox + gx, oy + gy)
+					if bc.x < 0 or bc.y < 0 or bc.x >= board_w or bc.y >= board_h:
+						solvable = false
+	print("[test] tack picture fits in board (solvable): %s" % solvable)
+	ok = ok and solvable
+
+	# 11) 압정 병합 전파: 자유 조각이 압정 조각을 흡수하면 결과 묶음도 압정으로 남고 압정칸을 보존한다.
+	var saved_groups := groups
+	var saved_cg := cell_group
+	groups = []
+	cell_group = {}
+	var free_g := PuzzleGroup.new()
+	var fcells: Array[Vector2i] = [Vector2i(0, 0)]
+	free_g.init(fcells, Vector2i(2, 2), cell_px, Vector2(cell_px, cell_px), cur_tex)
+	groups_layer.add_child(free_g)
+	groups.append(free_g)
+	var tack_g := PuzzleGroup.new()
+	var tcells: Array[Vector2i] = [Vector2i(1, 0)]
+	tack_g.init(tcells, Vector2i(2, 2), cell_px, Vector2(cell_px, cell_px), cur_tex)
+	tack_g.tacked = true
+	tack_g.tack_cell = Vector2i(1, 0)
+	groups_layer.add_child(tack_g)
+	groups.append(tack_g)
+	_resolve_merges(free_g)                        # 자유 조각 free_g 가 인접·동일 anchor 인 압정 조각을 흡수
+	var prop_ok := groups.size() == 1 and groups[0].tacked \
+			and groups[0].tack_cell == Vector2i(1, 0) and groups[0].cell_set.has(Vector2i(1, 0))
+	print("[test] tack merge propagation: %s" % prop_ok)
+	ok = ok and prop_ok
+	for g in groups:
+		g.queue_free()
+	groups = saved_groups
+	cell_group = saved_cg
 
 	print("[test] RESULT: %s" % ("PASS" if ok else "FAIL"))
 	get_tree().quit(0 if ok else 1)
