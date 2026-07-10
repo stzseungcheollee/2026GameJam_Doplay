@@ -27,30 +27,30 @@ const INTRO_STAGGER := 0.05     # 조각 팝업 등장 간격(초)
 #   레벨이 그림 수보다 적으면 마지막(가장 어려운) 줄을 계속 쓴다.
 # ─────────────────────────────────────────────────────────────────────────────
 const LEVELS: Array[Dictionary] = [
-	{"grid": Vector2i(2, 3), "board": Vector2i(4, 4),  "piece": Vector2i(2, 3), "boxes": []},          #  1
-	{"grid": Vector2i(2, 3), "board": Vector2i(4, 5),  "piece": Vector2i(1, 3), "boxes": []},          #  2
-	{"grid": Vector2i(3, 3), "board": Vector2i(5, 5),  "piece": Vector2i(2, 4), "boxes": []},          #  3
-	{"grid": Vector2i(3, 3), "board": Vector2i(5, 5),  "piece": Vector2i(1, 3), "boxes": [1]},         #  4  상자 첫 등장
-	{"grid": Vector2i(3, 4), "board": Vector2i(6, 6),  "piece": Vector2i(2, 4), "boxes": [1]},         #  5
-	{"grid": Vector2i(3, 4), "board": Vector2i(6, 6),  "piece": Vector2i(1, 3), "boxes": [2]},         #  6
-	{"grid": Vector2i(4, 4), "board": Vector2i(7, 7),  "piece": Vector2i(2, 4), "boxes": [2]},         #  7
-	{"grid": Vector2i(4, 4), "board": Vector2i(7, 7),  "piece": Vector2i(1, 4), "boxes": [2]},         #  8
-	{"grid": Vector2i(4, 5), "board": Vector2i(7, 8),  "piece": Vector2i(2, 4), "boxes": [2]},         #  9
-	{"grid": Vector2i(4, 5), "board": Vector2i(8, 8),  "piece": Vector2i(1, 4), "boxes": [3]},         # 10
-	{"grid": Vector2i(4, 5), "board": Vector2i(8, 8),  "piece": Vector2i(1, 3), "boxes": [1, 2]},      # 11  상자 2개
-	{"grid": Vector2i(5, 5), "board": Vector2i(8, 8),  "piece": Vector2i(2, 4), "boxes": [3]},         # 12
-	{"grid": Vector2i(5, 5), "board": Vector2i(8, 9),  "piece": Vector2i(1, 4), "boxes": [2, 2]},      # 13
-	{"grid": Vector2i(5, 6), "board": Vector2i(9, 9),  "piece": Vector2i(2, 4), "boxes": [3]},         # 14
-	{"grid": Vector2i(5, 6), "board": Vector2i(9, 9),  "piece": Vector2i(1, 4), "boxes": [1, 3]},      # 15
-	{"grid": Vector2i(5, 6), "board": Vector2i(9, 9),  "piece": Vector2i(1, 3), "boxes": [2, 3]},      # 16
-	{"grid": Vector2i(6, 6), "board": Vector2i(9, 10), "piece": Vector2i(2, 4), "boxes": [3]},         # 17
-	{"grid": Vector2i(6, 6), "board": Vector2i(10, 10),"piece": Vector2i(1, 4), "boxes": [2, 3]},      # 18
-	{"grid": Vector2i(6, 7), "board": Vector2i(10, 10),"piece": Vector2i(1, 4), "boxes": [3, 3]},      # 19
-	{"grid": Vector2i(6, 7), "board": Vector2i(10, 10),"piece": Vector2i(1, 3), "boxes": [2, 3, 3]},   # 20  상자 3개
-	{"grid": Vector2i(7, 7), "board": Vector2i(11, 11),"piece": Vector2i(1, 4), "boxes": [3, 3]},      # 21
-	{"grid": Vector2i(7, 7), "board": Vector2i(11, 11),"piece": Vector2i(1, 3), "boxes": [3, 3, 3]},      # 22
-	{"grid": Vector2i(7, 8), "board": Vector2i(11, 11),"piece": Vector2i(1, 4), "boxes": [2, 3, 3]},   # 23
-	{"grid": Vector2i(7, 9), "board": Vector2i(11, 11),"piece": Vector2i(1, 3), "boxes": [3, 3, 3]},   # 24
+	{"grid": Vector2i(2, 3), "board": Vector2i(4, 4),  "piece": Vector2i(2, 3), "boxes": []},          #  1  튜토리얼(상자 없음)
+	{"grid": Vector2i(2, 3), "board": Vector2i(4, 5),  "piece": Vector2i(1, 3), "boxes": [1]},         #  2  상자 첫 등장
+	{"grid": Vector2i(3, 3), "board": Vector2i(5, 5),  "piece": Vector2i(2, 4), "boxes": [1]},         #  3
+	{"grid": Vector2i(3, 3), "board": Vector2i(5, 5),  "piece": Vector2i(1, 3), "boxes": [2]},         #  4
+	{"grid": Vector2i(3, 4), "board": Vector2i(6, 6),  "piece": Vector2i(2, 4), "boxes": [2]},         #  5
+	{"grid": Vector2i(3, 4), "board": Vector2i(6, 6),  "piece": Vector2i(1, 3), "boxes": [3]},         #  6
+	{"grid": Vector2i(4, 4), "board": Vector2i(7, 7),  "piece": Vector2i(2, 4), "boxes": [1, 2]},      #  7  상자 2개
+	{"grid": Vector2i(4, 4), "board": Vector2i(7, 7),  "piece": Vector2i(1, 4), "boxes": [3]},         #  8
+	{"grid": Vector2i(4, 5), "board": Vector2i(7, 8),  "piece": Vector2i(2, 4), "boxes": [2, 2]},      #  9
+	{"grid": Vector2i(4, 5), "board": Vector2i(8, 8),  "piece": Vector2i(1, 4), "boxes": [1, 3]},      # 10
+	{"grid": Vector2i(4, 5), "board": Vector2i(8, 8),  "piece": Vector2i(1, 3), "boxes": [2, 3]},      # 11
+	{"grid": Vector2i(5, 5), "board": Vector2i(8, 8),  "piece": Vector2i(2, 4), "boxes": [3, 3]},      # 12
+	{"grid": Vector2i(5, 5), "board": Vector2i(8, 9),  "piece": Vector2i(1, 4), "boxes": [2, 2, 2]},   # 13  상자 3개
+	{"grid": Vector2i(5, 6), "board": Vector2i(9, 9),  "piece": Vector2i(2, 4), "boxes": [3, 3]},      # 14
+	{"grid": Vector2i(5, 6), "board": Vector2i(9, 9),  "piece": Vector2i(1, 4), "boxes": [1, 3, 3]},   # 15
+	{"grid": Vector2i(5, 6), "board": Vector2i(9, 9),  "piece": Vector2i(1, 3), "boxes": [3, 3, 3]},   # 16
+	{"grid": Vector2i(6, 6), "board": Vector2i(9, 10), "piece": Vector2i(2, 4), "boxes": [2, 3, 3]},   # 17
+	{"grid": Vector2i(6, 6), "board": Vector2i(10, 10),"piece": Vector2i(1, 4), "boxes": [2, 3, 3]},   # 18
+	{"grid": Vector2i(6, 7), "board": Vector2i(10, 10),"piece": Vector2i(1, 4), "boxes": [3, 3, 3]},   # 19
+	{"grid": Vector2i(6, 7), "board": Vector2i(10, 10),"piece": Vector2i(1, 3), "boxes": [1, 3, 3, 3]}, # 20  상자 4개
+	{"grid": Vector2i(7, 7), "board": Vector2i(11, 11),"piece": Vector2i(1, 4), "boxes": [3, 3, 3, 3]}, # 21
+	{"grid": Vector2i(7, 7), "board": Vector2i(11, 11),"piece": Vector2i(1, 3), "boxes": [2, 3, 3, 3]}, # 22
+	{"grid": Vector2i(7, 8), "board": Vector2i(11, 11),"piece": Vector2i(1, 4), "boxes": [3, 3, 3, 3]}, # 23
+	{"grid": Vector2i(7, 9), "board": Vector2i(11, 11),"piece": Vector2i(1, 3), "boxes": [3, 3, 3, 3, 3]}, # 24  상자 5개
 ]
 
 var cell_px := 75.0
@@ -514,6 +514,13 @@ func _update_float_states() -> void:
 		var g := groups_layer.get_child(i) as PuzzleGroup
 		if g and in_groups.has(g) and not g.boxed:
 			order.append(g)
+	# 상자가 놓인 칸도 "다른 조각이 있는 칸"과 똑같이 취급한다.
+	# 상자는 항상 조각보다 위 레이어라, 그 칸에 겹친 조각은 상자 위에 얹힌 것으로 보고 떠오른다.
+	var box_cells := {}
+	for b in boxes:
+		if is_instance_valid(b):
+			for bc in b.footprint_cells():
+				box_cells[bc] = true
 	for idx in order.size():
 		var g := order[idx]
 		if g == drag_group:
@@ -523,16 +530,21 @@ func _update_float_states() -> void:
 		for bc in g.board_cells():
 			mine[bc] = true
 		var on_top := false
-		for lower in idx:
-			var b := order[lower]
-			if b == drag_group:
-				continue
-			for bc in b.board_cells():
-				if mine.has(bc):
-					on_top = true
-					break
-			if on_top:
+		for bc in mine:
+			if box_cells.has(bc):
+				on_top = true
 				break
+		if not on_top:
+			for lower in idx:
+				var b := order[lower]
+				if b == drag_group:
+					continue
+				for bc in b.board_cells():
+					if mine.has(bc):
+						on_top = true
+						break
+				if on_top:
+					break
 		g.set_lifted(on_top)
 
 
