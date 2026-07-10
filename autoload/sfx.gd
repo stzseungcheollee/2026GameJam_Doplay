@@ -27,16 +27,16 @@ func _ready() -> void:
 
 # ---------- 재생 ----------
 
-func play(name: String) -> void:
-	play_pitched(name, 1.0)
+func play(snd: String) -> void:
+	play_pitched(snd, 1.0)
 
 
 ## base_pitch 로 음정을 옮겨 재생(합체 연쇄 시 음을 조금씩 올리는 "콤보" 연출용). 미세 랜덤을 더해 반복이 기계적이지 않게.
-func play_pitched(name: String, base_pitch: float) -> void:
-	var s: AudioStreamWAV = _streams.get(name)
+func play_pitched(snd: String, base_pitch: float) -> void:
+	var s: AudioStreamWAV = _streams.get(snd)
 	if s == null:
 		return
-	var cfg: Dictionary = _cfg.get(name, {})
+	var cfg: Dictionary = _cfg.get(snd, {})
 	var p := _players[_next]
 	_next = (_next + 1) % _players.size()
 	p.stream = s
@@ -110,9 +110,9 @@ func _make(buf: PackedFloat32Array, peak: float = 0.9) -> AudioStreamWAV:
 	return st
 
 
-func _register(name: String, stream: AudioStreamWAV, vol: float, pv: float) -> void:
-	_streams[name] = stream
-	_cfg[name] = {"vol": vol, "pv": pv}
+func _register(snd: String, stream: AudioStreamWAV, vol: float, pv: float) -> void:
+	_streams[snd] = stream
+	_cfg[snd] = {"vol": vol, "pv": pv}
 
 
 # ---------- 사운드 정의 ----------

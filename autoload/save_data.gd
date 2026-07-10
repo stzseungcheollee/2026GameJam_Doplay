@@ -4,6 +4,8 @@ extends Node
 ## 스테이지 인덱스는 퍼즐 번호 - 1 (1.png → 0). 웹(itch.io)에서는 user:// 가 IndexedDB에 저장된다.
 
 const SAVE_PATH := "user://progress.save"
+const PUZZLE_DIR := "res://assets/puzzles"
+const PUZZLE_EXTS := ["png", "jpg", "jpeg", "webp", "svg"]
 
 var _completed: Dictionary = {}          # level_idx(int) -> true (집합처럼 사용)
 
@@ -43,7 +45,7 @@ func completed_indices() -> Array[int]:
 func reset() -> void:
 	_completed.clear()
 	if FileAccess.file_exists(SAVE_PATH):
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
+		DirAccess.remove_absolute(SAVE_PATH)   # user:// 경로 그대로 넘긴다(웹 IndexedDB에서도 동작)
 
 
 func _save() -> void:
@@ -67,3 +69,22 @@ func _load() -> void:
 	if data is Array:
 		for v in data:
 			_completed[int(v)] = true
+
+
+## assets/puzzles 의 1.png, 2.png ... 를 순서대로 찾아 Texture2D 배열로 돌려준다.
+## main(게임)과 menu(로비)가 같은 레벨 목록을 보도록 스캔을 여기 한 곳에 둔다.
+func scan_puzzle_textures() -> Array[Texture2D]:
+	var out: Array[Texture2D] = []
+	var i := 1
+	while i <= 99:
+		var found: Texture2D = null
+		for e in PUZZLE_EXTS:
+			var p := "%s/%d.%s" % [PUZZLE_DIR, i, e]
+			if ResourceLoader.exists(p):
+				found = load(p)
+				break
+		if found == null:
+			break
+		out.append(found)
+		i += 1
+	return out

@@ -11,7 +11,6 @@ extends Control
 
 const VIEW_W := 720.0
 const VIEW_H := 1280.0
-const PUZZLE_DIR := "res://assets/puzzles"
 const GAME_SCENE := "res://scenes/main.tscn"
 const BOX_SPRITE := "res://assets/sprites/box_4.png"
 
@@ -144,32 +143,13 @@ func _play_intro() -> void:
 
 # ---------- 스테이지 모델 구성 ----------
 
-## assets/puzzles 의 1.png, 2.png ... 를 순서대로 스캔한다(레벨 개수 파악).
-func _scan_level_textures() -> Array[Texture2D]:
-	var out: Array[Texture2D] = []
-	var exts := ["png", "jpg", "jpeg", "webp", "svg"]
-	var i := 1
-	while i <= 99:
-		var found: Texture2D = null
-		for e in exts:
-			var p := "%s/%d.%s" % [PUZZLE_DIR, i, e]
-			if ResourceLoader.exists(p):
-				found = load(p)
-				break
-		if found == null:
-			break
-		out.append(found)
-		i += 1
-	return out
-
-
 ## 카드 목록을 만든다:
 ##  - 완성한 레벨 → 그림 카드
 ##  - 아직 안 깬 "가장 앞선" 레벨 하나 → 박스 카드(여기서부터가 다음 도전 스테이지)
 ##  - 그 뒤의 아직 안 깬(잠긴) 레벨들은 표시하지 않는다.
 ## 초기 포커스는 박스(다음 도전 스테이지)에 맞춘다. 전부 깼다면 마지막 완성작에 맞춘다.
 func _build_stages() -> void:
-	var level_texs := _scan_level_textures()
+	var level_texs := SaveData.scan_puzzle_textures()
 	var box_tex: Texture2D = load(BOX_SPRITE) if ResourceLoader.exists(BOX_SPRITE) else null
 
 	var first_uncleared := -1

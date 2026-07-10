@@ -10,7 +10,6 @@ const VIEW_W := 720.0
 const VIEW_H := 1280.0
 const BOARD_W_BUDGET := 576.0   # 보드가 가로로 채울 최대 크기(폭 720 중, 좌우 여백 넉넉히)
 const BOARD_H_BUDGET := 900.0   # 보드가 세로로 채울 최대 크기
-const PUZZLE_DIR := "res://assets/puzzles"
 const MENU_SCENE := "res://scenes/menu.tscn"
 const FADE_COL := Color(0.10, 0.07, 0.04)   # 메뉴에서 넘어올 때의 컷 전환(페이드인) 색
 const DIRS := [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
@@ -42,22 +41,22 @@ const LEVELS: Array[Dictionary] = [
 	{"grid": Vector2i(3, 4), "board": Vector2i(6, 6),  "piece": Vector2i(2, 4), "boxes": [2]},         #  5
 	{"grid": Vector2i(3, 4), "board": Vector2i(6, 6),  "piece": Vector2i(1, 3), "boxes": [3]},         #  6
 	{"grid": Vector2i(4, 4), "board": Vector2i(7, 7),  "piece": Vector2i(2, 4), "boxes": [1, 2]},      #  7  상자 2개
-	{"grid": Vector2i(4, 4), "board": Vector2i(7, 7),  "piece": Vector2i(1, 4), "boxes": [3], "tacks": 1},   #  8
+	{"grid": Vector2i(4, 4), "board": Vector2i(7, 7),  "piece": Vector2i(1, 3), "boxes": [3], "tacks": 1},   #  8  (압정+상자 → 조각 잘게: 최악 보장선 확보)
 	{"grid": Vector2i(4, 5), "board": Vector2i(7, 8),  "piece": Vector2i(2, 4), "boxes": [2, 2]},      #  9
 	{"grid": Vector2i(4, 5), "board": Vector2i(8, 8),  "piece": Vector2i(1, 4), "boxes": [1, 3]},      # 10
 	{"grid": Vector2i(4, 5), "board": Vector2i(8, 8),  "piece": Vector2i(1, 3), "boxes": [2, 3]},      # 11
 	{"grid": Vector2i(5, 5), "board": Vector2i(8, 8),  "piece": Vector2i(2, 4), "boxes": [3, 3]},      # 12
-	{"grid": Vector2i(5, 5), "board": Vector2i(8, 9),  "piece": Vector2i(1, 4), "boxes": [2, 2, 2], "tacks": 1}, # 13  상자 3개
+	{"grid": Vector2i(5, 5), "board": Vector2i(8, 9),  "piece": Vector2i(1, 3), "boxes": [2, 2, 2], "tacks": 1}, # 13  상자 3개
 	{"grid": Vector2i(5, 6), "board": Vector2i(9, 9),  "piece": Vector2i(2, 4), "boxes": [3, 3]},      # 14
 	{"grid": Vector2i(5, 6), "board": Vector2i(9, 9),  "piece": Vector2i(1, 4), "boxes": [1, 3, 3]},   # 15
 	{"grid": Vector2i(5, 6), "board": Vector2i(9, 9),  "piece": Vector2i(1, 3), "boxes": [3, 3, 3]},   # 16
 	{"grid": Vector2i(6, 6), "board": Vector2i(9, 10), "piece": Vector2i(2, 4), "boxes": [2, 3, 3]},   # 17
-	{"grid": Vector2i(6, 6), "board": Vector2i(10, 10),"piece": Vector2i(1, 4), "boxes": [2, 3, 3], "tacks": 2}, # 18
+	{"grid": Vector2i(6, 6), "board": Vector2i(10, 10),"piece": Vector2i(1, 3), "boxes": [2, 3, 3], "tacks": 2}, # 18
 	{"grid": Vector2i(6, 7), "board": Vector2i(10, 10),"piece": Vector2i(1, 4), "boxes": [3, 3, 3]},   # 19
 	{"grid": Vector2i(6, 7), "board": Vector2i(10, 10),"piece": Vector2i(1, 3), "boxes": [1, 3, 3, 3]}, # 20  상자 4개
 	{"grid": Vector2i(7, 7), "board": Vector2i(11, 11),"piece": Vector2i(1, 4), "boxes": [3, 3, 3, 3]}, # 21
 	{"grid": Vector2i(7, 7), "board": Vector2i(11, 11),"piece": Vector2i(1, 3), "boxes": [2, 3, 3, 3]}, # 22
-	{"grid": Vector2i(7, 8), "board": Vector2i(11, 11),"piece": Vector2i(1, 4), "boxes": [3, 3, 3, 3], "tacks": 2}, # 23
+	{"grid": Vector2i(7, 8), "board": Vector2i(11, 11),"piece": Vector2i(1, 3), "boxes": [3, 3, 3, 3], "tacks": 2}, # 23
 	{"grid": Vector2i(7, 9), "board": Vector2i(11, 11),"piece": Vector2i(1, 3), "boxes": [3, 3, 3, 3, 3]}, # 24  상자 5개
 ]
 
@@ -143,21 +142,9 @@ func _ready() -> void:
 # ---------- 레벨 로딩 ----------
 
 ## assets/puzzles 에서 1.png, 2.png ... 를 순서대로 찾는다. 없으면 코드 그림으로 대체.
+## 이미지 목록 스캔은 menu(로비)와 똑같이 SaveData 로 공유한다(원본 유지 — 레벨 시작 때 격자 비율로 중앙 크롭).
 func _load_levels() -> Array[Texture2D]:
-	var out: Array[Texture2D] = []
-	var exts := ["png", "jpg", "jpeg", "webp", "svg"]
-	var i := 1
-	while i <= 99:
-		var found: Texture2D = null
-		for e in exts:
-			var p := "%s/%d.%s" % [PUZZLE_DIR, i, e]
-			if ResourceLoader.exists(p):
-				found = load(p)
-				break
-		if found == null:
-			break
-		out.append(found)     # 원본 유지 — 레벨 시작 때 격자 비율(w:h)로 중앙 크롭한다
-		i += 1
+	var out := SaveData.scan_puzzle_textures()
 	if out.is_empty():
 		for sid in 3:
 			out.append(await _paint_texture(sid))
@@ -746,7 +733,7 @@ func _reorder_by_depth() -> void:
 	var items: Array = []
 	for i in groups_layer.get_child_count():
 		var g := groups_layer.get_child(i) as PuzzleGroup
-		if g != null:
+		if g != null and not g.boxed:      # 숨긴(상자 안) 조각은 깊이 정렬에서 제외 — 비가시라 뒤로 밀려나도 무방
 			items.append({"g": g, "k": _depth_key(g), "i": i})
 	# 깊이 키 오름차순, 동률이면 기존 순서 유지(안정 정렬)
 	items.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
@@ -998,7 +985,7 @@ func _win() -> void:
 	riser.rotation = start_angle
 	riser.position = start_center - riser.pivot_offset
 	dim.color.a = 0.0
-	overlay_btn.text = "처음부터" if last else "다음"
+	overlay_btn.text = "메뉴로" if last else "다음"
 	overlay_btn.modulate.a = 0.0
 	overlay.visible = true
 
@@ -1131,8 +1118,9 @@ func _report_balance() -> void:
 		var warn := ""
 		if b.x < g.x or b.y < g.y:
 			warn += "보드<격자! "
-		if hide + 1 > min_pieces:
-			warn += "상자>조각! "
+		# 상자(hide) + 압정(자유 조각 1개 예약) + 보드에 남길 1개 ≤ 최소 조각 수 여야 정상 배치된다.
+		if hide + tk + 1 > min_pieces:
+			warn += "상자+압정>조각! "
 		if float(cells + bx.size()) > float(b.x * b.y) * 0.7:
 			warn += "보드빽빽 "
 		# 압정은 완성 그림을 보드 안(pic_origin 범위)에 통째로 두므로 board≥grid 이면 항상 클리어 가능.
@@ -1355,6 +1343,19 @@ func _run_self_test() -> void:
 		g.queue_free()
 	groups = saved_groups
 	cell_group = saved_cg
+
+	# 12) 압정 회전 스킵: 보드 밖으로 나가는 자세는 건너뛴다. 맨 윗줄의 가로줄은 90°(세로)면 y=-1 로 삐져 → 스킵, 180°는 OK.
+	var line_cells: Array[Vector2i] = [Vector2i(0, 0), Vector2i(1, 0), Vector2i(2, 0)]
+	var lg := PuzzleGroup.new()
+	lg.init(line_cells, Vector2i.ZERO, cell_px, Vector2(cell_px, cell_px), cur_tex)
+	lg.tacked = true
+	lg.tack_cell = Vector2i(1, 0)
+	lg.set_rotation_index(0)
+	lg.off = Vector2i(1, 0)                             # 축칸 보드위치 (2,0) — 맨 윗줄
+	var skip_ok := (not _tacked_rot_in_board(lg, 1)) and _tacked_rot_in_board(lg, 2)
+	print("[test] tacked rotation skips off-board pose: %s" % skip_ok)
+	ok = ok and skip_ok
+	lg.free()
 
 	print("[test] RESULT: %s" % ("PASS" if ok else "FAIL"))
 	get_tree().quit(0 if ok else 1)
