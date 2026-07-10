@@ -632,18 +632,54 @@ func _drop(g: PuzzleGroup) -> void:
 ## 겹침은 허용(떠오름으로 표현), 보드 밖으로만 안 나가게 클램프. 회전 후 같은 각도의 이웃과 맞으면 합체 시도.
 func _tap_rotate(g: PuzzleGroup) -> void:
 	board_view.clear_ghost()
+	if g.tacked:
+		_tap_rotate_tacked(g)
+		return
 	Sfx.play("rotate")
-	# 압정 조각은 어디를 눌러도 압정칸을 축으로 돈다 → 압정칸 보드 위치가 고정돼 압정이 절대 안 움직인다.
-	var pivot := g.tack_cell if g.tacked else _pick_cell
+	var pivot := _pick_cell
 	var pivot_bc := g.off + g.rel_cell(pivot, g.rot)    # 회전 전 축칸의 보드칸
 	var pivot_center := (Vector2(pivot_bc) + Vector2(0.5, 0.5)) * g.cell_px  # 화면상 고정할 축 중앙
 	g.bump_rotation()
 	var new_off := pivot_bc - g.rel_cell(pivot, g.rot)  # 축칸을 제자리에 고정
-	# 압정 조각은 클램프하지 않는다(클램프하면 축칸이 밀려 압정이 이동). 완성 자세(rot=0)는 보드 안이라 문제없다.
-	var final_off := new_off if g.tacked else g.clamp_off(new_off, board_w, board_h)
-	g.rotate_around(pivot, pivot_center, final_off)
+	g.rotate_around(pivot, pivot_center, g.clamp_off(new_off, board_w, board_h))
 	_resolve_merges(g)     # 회전한 상태로도 같은 각도의 이웃과 맞으면 합쳐진다
 	_finish_move()
+
+
+## 압정 조각 회전 — 압정칸을 축으로 돌되, 보드 밖으로 삐져나가는 자세는 건너뛰고 처음으로 완전히 보드 안에 드는
+## 자세까지 90°씩 나아간다(합체로 커진 묶음이 가장자리에서 삐져나가는 걸 막는다). 어느 자세로도 못 들면 회전 무시.
+## 압정칸 보드 위치는 어떤 경우에도 고정이라 압정은 절대 안 움직인다.
+func _tap_rotate_tacked(g: PuzzleGroup) -> void:
+	var pivot := g.tack_cell
+	var pivot_bc := g.off + g.rel_cell(pivot, g.rot)
+	var steps := 0
+	for s in [1, 2, 3]:
+		if _tacked_rot_in_board(g, s):
+			steps = s
+			break
+	if steps == 0:
+		return                                          # 유효한 자세 없음 → 그대로(현재 자세는 이미 보드 안)
+	Sfx.play("rotate")
+	var pivot_center := (Vector2(pivot_bc) + Vector2(0.5, 0.5)) * g.cell_px
+	for _i in steps:
+		g.bump_rotation()
+	var new_off := pivot_bc - g.rel_cell(pivot, g.rot)  # 축칸을 제자리에 고정(클램프 안 함 → 압정 안 밀림)
+	g.rotate_around(pivot, pivot_center, new_off, steps)
+	_resolve_merges(g)
+	_finish_move()
+
+
+## 압정 조각 g 를 축(tack_cell)을 고정한 채 s 스텝(×90°) 돌렸을 때, 모든 칸이 보드 안이면 true.
+func _tacked_rot_in_board(g: PuzzleGroup, s: int) -> bool:
+	var pivot := g.tack_cell
+	var pivot_bc := g.off + g.rel_cell(pivot, g.rot)
+	var nr := posmod(g.rot + s, 4)
+	var noff := pivot_bc - g.rel_cell(pivot, nr)
+	for c in g.cells:
+		var bc := noff + g.rel_cell(c, nr)
+		if bc.x < 0 or bc.y < 0 or bc.x >= board_w or bc.y >= board_h:
+			return false
+	return true
 
 
 func _finish_move() -> void:

@@ -303,21 +303,22 @@ func set_off(new_off: Vector2i, animate: bool) -> void:
 	apply_pose(animate)
 
 
-## 축칸(pivot, 정답 셀) 중앙을 부모 좌표계 pivot_center 에 고정한 채 새 off 자세로 90° 부드럽게 회전한다.
-## rot·_vis_angle 은 호출 전에 bump_rotation() 으로 이미 갱신되어 있어야 한다(직전보다 한 스텝 앞선 상태).
+## 축칸(pivot, 정답 셀) 중앙을 부모 좌표계 pivot_center 에 고정한 채 새 off 자세로 부드럽게 회전한다.
+## quarter_steps = 이번에 돈 90° 스텝 수(보통 1, 압정이 밖으로 나가는 자세를 건너뛰면 2~3). 그만큼 각도를 스윕한다.
+## rot·_vis_angle 은 호출 전에 bump_rotation() 을 steps 번 호출해 이미 갱신되어 있어야 한다.
 ## position·rotation 을 따로 트윈하지 않고, 각도를 보간하며 매 프레임 축을 고정해 튐 없이 제자리에서 돈다.
-func rotate_around(pivot: Vector2i, pivot_center: Vector2, new_off: Vector2i) -> void:
+func rotate_around(pivot: Vector2i, pivot_center: Vector2, new_off: Vector2i, quarter_steps: int = 1) -> void:
 	off = new_off
 	var local_pivot := (Vector2(pivot) + Vector2(0.5, 0.5)) * cell_px
 	var end_pos := _pose_position(rot)
 	# 축을 고정한 순수 회전의 종료 위치. 클램프가 없으면 end_pos 와 같고, 밀렸으면 그 차이만큼 함께 슬라이드한다.
 	var rot_end_pos := pivot_center - local_pivot.rotated(_vis_angle)
 	var delta := end_pos - rot_end_pos
-	var start_angle := _vis_angle - PI / 2.0
+	var start_angle := _vis_angle - (PI / 2.0) * quarter_steps
 	_kill_tween()
 	_tween = create_tween()
 	_tween.tween_method(_apply_rot_step.bind(start_angle, pivot_center, local_pivot, delta),
-		0.0, 1.0, 0.2).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		0.0, 1.0, 0.2 + 0.1 * (quarter_steps - 1)).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 
 func _apply_rot_step(t: float, start_angle: float, pivot_center: Vector2, local_pivot: Vector2, delta: Vector2) -> void:
